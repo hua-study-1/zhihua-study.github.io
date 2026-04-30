@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++在线判题系统 | 完美修复版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Microsoft YaHei', monospace;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        .particle {
+            position: fixed;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 20s infinite linear;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hide { display: none !important; }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a67d8; transform: translateY(-2px); }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-success:hover { background: #38a169; transform: translateY(-2px); }
+        .btn-danger { background: #f56565; color: white; }
+        .btn-danger:hover { background: #e53e3e; transform: translateY(-2px); }
+        .btn-warning { background: #ed8936; color: white; }
+        .btn-info { background: #4299e1; color: white; }
+        .btn-outline { background: white; border: 2px solid #cbd5e0; color: #4a5568; }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            animation: slideIn 0.5s ease;
+            text-align: center;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: -10px;
+            animation: confettiFall 3s ease-in-out forwards;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #c53030;
+            margin: 15px 0;
+            font-family: monospace;
+            text-align: left;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            margin: 20px auto;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 0.8s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .score-inner {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .score-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+
+        .left-box, .right-box {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .modal-mask {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .search-box {
+            margin: 15px 0;
+        }
+
+        .problem-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .problem-item:hover {
+            background: #f7fafc;
+            transform: translateX(5px);
+        }
+
+        .problem-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .test-point-card {
+            background: #f7fafc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 12px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .refresh-btn {
+            animation: rotate 0.5s ease;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #48bb78;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .action-buttons .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="loginPage" class="container">
+    <div class="card" style="max-width: 450px; margin: 80px auto;">
+        <h2 style="text-align:center; margin-bottom: 25px;">🔧 C++ 在线判题系统</h2>
+        <input type="text" id="loginAcc" placeholder="账号" autocomplete="off">
+        <input type="password" id="loginPwd" placeholder="密码">
+        <div id="loginTip" style="color:#e53e3e; margin:10px 0;"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="userLogin()">登录系统</button>
+        <div style="margin-top: 15px; background:#edf2f7; padding: 12px; border-radius: 10px; font-size:13px;">
+            📌 教师账号：admin / 123456<br>
+            📌 学生账号：zhangsan/123456 或 lisi/123456
+        </div>
+    </div>
+</div>
+
+<!-- 教师主界面 -->
+<div id="teacherMainPage" class="container hide">
+    <div class="card">
+        <div class="top-bar">
+            <h2>📚 C++ 编程题库（教师端）</h2>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button class="btn btn-warning" onclick="openAdminPage()">⚙️ 后台管理</button>
+                <button class="btn btn-outline" onclick="switchTeacherTab('problems')">📋 全部题目</button>
+                <button class="btn btn-outline" onclick="switchTeacherTab('records')">📊 提交记录</button>
+                <button class="btn btn-danger" onclick="userLogout()">🚪 退出</button>
+            </div>
+        </div>
+        <div class="search-box">
+            <input type="text" id="teacherSearchInput" placeholder="🔍 搜索题目..." oninput="renderTeacherProblemList()">
+        </div>
+        <div id="teacherProblemsPanel"></div>
+        <div id="teacherRecordsPanel" class="hide">
+            <div style="overflow-x: auto;">
+                <table id="teacherSubmitTable">
+                    <thead>
+                        <tr>
+                            <th>学生姓名</th>
+                            <th>题目名称</th>
+                            <th>得分</th>
+                            <th>提交时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 后台管理页面 -->
+<div id="teacherAdminPage" class="container hide">
+    <div class="card">
+        <div class="top-bar">
+            <h2>📀 后台管理中心</h2>
+            <button class="btn btn-outline" onclick="backToTeacherMain()">← 返回</button>
+        </div>
+        <div style="margin: 12px 0; display: flex; gap: 12px;">
+            <button class="btn btn-primary" onclick="switchAdminTab('student')">👥 学生管理</button>
+            <button class="btn btn-success" onclick="switchAdminTab('problem')">📝 题目管理</button>
+            <button class="btn btn-danger" onclick="userLogout()">退出</button>
+        </div>
+        
+        <!-- 学生管理面板 -->
+        <div id="adminStudentPanel">
+            <button class="btn btn-success" onclick="openAddStudentModal()">➕ 添加学生</button>
+            <div style="overflow-x: auto; margin-top: 15px;">
+                <table id="adminStudentTable">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>账号</th>
+                            <th>密码</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 题目管理面板 -->
+        <div id="adminProblemPanel" class="hide">
+            <button class="btn btn-success" onclick="openAddProblemModal()">➕ 新建题目</button>
+            <div style="overflow-x: auto; margin-top: 15px;">
+                <table id="adminProblemTable">
+                    <thead>
+                        <tr>
+                            <th>题目名称</th>
+                            <th>总分</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 学生主界面 -->
+<div id="studentMainPage" class="container hide">
+    <div class="card">
+        <div class="top-bar">
+            <h2>🧑‍💻 学生做题大厅</h2>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-info" onclick="refreshStudentProblems()" id="refreshBtn">🔄 刷新题目</button>
+                <button class="btn btn-danger" onclick="userLogout()">退出</button>
+            </div>
+        </div>
+        <div class="search-box">
+            <input type="text" id="studentSearchInput" placeholder="🔍 搜索题目..." oninput="renderStudentProblemList()">
+        </div>
+        <div id="studentProblemList"></div>
+    </div>
+</div>
+
+<!-- 做题页面 -->
+<div id="codeEditPage" class="container hide">
+    <div class="card">
+        <button class="btn btn-outline" onclick="backProblemList()">← 返回</button>
+        <h3 id="nowProblemTitle" style="margin: 15px 0;"></h3>
+        <p id="nowProblemDesc" style="background:#f7fafc; padding: 15px; border-radius: 10px;"></p>
+        <div class="flex-row">
+            <div class="left-box">
+                <textarea id="codeEditor" rows="20" style="font-family: 'Courier New', monospace; font-size: 14px;"></textarea>
+            </div>
+            <div class="right-box">
+                <button class="btn btn-success" style="width:100%; margin-bottom: 20px;" onclick="submitCodeJudge()">🚀 提交判题</button>
+                <div id="judgeResultBox"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 查看提交详情 -->
+<div id="viewSubmitDetailPage" class="container hide">
+    <div class="card">
+        <button class="btn btn-outline" onclick="backToRecords()">← 返回</button>
+        <h3>📄 提交详情</h3>
+        <div id="submitDetailInfo"></div>
+        <div class="card">
+            <strong>源代码：</strong>
+            <textarea id="detailCodeContent" readonly rows="10" style="background:#f7fafc; font-family: monospace;"></textarea>
+        </div>
+        <div id="detailJudgeContent"></div>
+    </div>
+</div>
+
+<!-- 添加学生模态框 -->
+<div id="addStudentModal" class="hide modal-mask">
+    <div class="card" style="width: 450px;">
+        <h4>➕ 添加学生</h4>
+        <input id="addStuName" placeholder="姓名">
+        <input id="addStuAcc" placeholder="账号">
+        <input id="addStuPwd" placeholder="密码" value="123456">
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-success" onclick="saveNewStudent()">保存</button>
+            <button class="btn btn-outline" onclick="closeAddStudentModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑学生模态框 -->
+<div id="editStudentModal" class="hide modal-mask">
+    <div class="card" style="width: 450px;">
+        <h4>✏️ 编辑学生信息</h4>
+        <input id="editStuId" type="hidden">
+        <input id="editStuName" placeholder="姓名">
+        <input id="editStuAcc" placeholder="账号">
+        <input id="editStuPwd" placeholder="密码">
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-success" onclick="updateStudent()">保存修改</button>
+            <button class="btn btn-outline" onclick="closeEditStudentModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 添加题目模态框 -->
+<div id="addProblemModal" class="hide modal-mask">
+    <div class="card" style="width: 700px; max-height: 80vh; overflow-y: auto;">
+        <h4>📌 新建题目</h4>
+        <input id="addProbTitle" placeholder="题目名称">
+        <textarea id="addProbDesc" placeholder="题目描述" rows="3"></textarea>
+        <button class="btn btn-primary" onclick="addTestPoint()">➕ 添加测试点</button>
+        <div id="testPointWrap"></div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-success" onclick="saveNewProblem()">保存</button>
+            <button class="btn btn-outline" onclick="closeAddProblemModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 创建背景粒子动画
+function createParticles() {
+    for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.width = Math.random() * 5 + 2 + 'px';
+        particle.style.height = particle.style.width;
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 20 + 's';
+        particle.style.animationDuration = Math.random() * 10 + 15 + 's';
+        document.body.appendChild(particle);
+    }
+}
+
+function showToast(message, isError = false) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.style.background = isError ? '#f56565' : '#48bb78';
+    toast.innerHTML = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// ==================== 数据存储 ====================
+let globalData = {
+    role: null,
+    userInfo: null,
+    problemList: [],
+    studentList: [],
+    submitRecords: [],
+    currentProblem: null
+};
+
+// 初始化数据
+function initData() {
+    const saved = localStorage.getItem('cpp_system_data');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            globalData.problemList = data.problemList || [];
+            globalData.studentList = data.studentList || [];
+            globalData.submitRecords = data.submitRecords || [];
+        } catch(e) { console.error(e); }
+    }
+    
+    if (globalData.problemList.length === 0) {
+        globalData.problemList = [
+            { id: 1, title: "两数之和", desc: "输入两个整数 a 和 b，输出它们的和。", 
+              testPoint: [{ input: "1 2", output: "3", score: 50 }, { input: "5 7", output: "12", score: 50 }] },
+            { id: 2, title: "最长连续9", desc: "输入n个数字，求最长连续9的个数", 
+              testPoint: [{ input: "6\n1 9 9 3 9 9", output: "2", score: 33 }, 
+                         { input: "5\n9 9 9 9 9", output: "5", score: 33 },
+                         { input: "6\n9 9 3 9 9 9", output: "3", score: 34 }] },
+            { id: 3, title: "三数相加", desc: "声明 int a=1, b=2, c=3，输出 a+b+c 的结果", 
+              testPoint: [{ input: "", output: "6", score: 100 }] }
+        ];
+    }
+    
+    if (globalData.studentList.length === 0) {
+        globalData.studentList = [
+            { name: "张三", acc: "zhangsan", pwd: "123456" },
+            { name: "李四", acc: "lisi", pwd: "123456" }
+        ];
+    }
+    
+    saveData();
+}
+
+function saveData() {
+    localStorage.setItem('cpp_system_data', JSON.stringify({
+        problemList: globalData.problemList,
+        studentList: globalData.studentList,
+        submitRecords: globalData.submitRecords
+    }));
+}
+
+// 刷新数据（从localStorage重新加载）
+function refreshData() {
+    const saved = localStorage.getItem('cpp_system_data');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            globalData.problemList = data.problemList || [];
+            globalData.studentList = data.studentList || [];
+            globalData.submitRecords = data.submitRecords || [];
+        } catch(e) {}
+    }
+    saveData();
+}
+
+// 学生端刷新题目
+function refreshStudentProblems() {
+    refreshData();
+    renderStudentProblemList();
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('refresh-btn');
+    showToast('✅ 题目列表已刷新');
+    setTimeout(() => btn.classList.remove('refresh-btn'), 500);
+}
+
+// ==================== C++模拟执行器 ====================
+class CppExecutor {
+    constructor(code, input) {
+        this.code = code;
+        this.input = input;
+        this.variables = new Map();
+        this.output = "";
+        this.errors = [];
+        this.inputIndex = 0;
+        this.inputValues = input ? input.split(/\s+/) : [];
+    }
+    
+    evaluateExpression(expr) {
+        expr = expr.trim();
+        if (expr.startsWith('"') && expr.endsWith('"')) return expr.slice(1, -1);
+        if (expr === 'endl') return '\n';
+        
+        const maxMatch = expr.match(/max\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/);
+        if (maxMatch) {
+            const left = parseFloat(this.evaluateExpression(maxMatch[1]));
+            const right = parseFloat(this.evaluateExpression(maxMatch[2]));
+            return String(Math.max(left, right));
+        }
+        
+        if (/^-?\d+(?:\.\d+)?$/.test(expr)) return expr;
+        if (this.variables.has(expr)) {
+            const val = this.variables.get(expr);
+            return val !== undefined && val !== null ? String(val) : "0";
+        }
+        
+        try {
+            let evalStr = expr;
+            for (let [varName, varValue] of this.variables) {
+                const regex = new RegExp('\\b' + varName + '\\b', 'g');
+                evalStr = evalStr.replace(regex, varValue);
+            }
+            if (/^[0-9+\-*/()\s.]+$/.test(evalStr)) {
+                return String(Function('"use strict"; return (' + evalStr + ')')());
+            }
+            return expr;
+        } catch(e) { return expr; }
+    }
+    
+    execute() {
+        let processedCode = this.code.replace(/#include\s*<[^>]+>/g, '').replace(/using\s+namespace\s+std\s*;/g, '');
+        const mainMatch = processedCode.match(/int\s+main\s*\(\s*\)\s*\{([\s\S]*?)\}/);
+        if (!mainMatch) {
+            this.errors.push("❌ 无法解析main函数");
+            return { success: false, errors: this.errors, output: "" };
+        }
+        
+        let body = mainMatch[1];
+        const lines = body.split('\n');
+        
+        for (let line of lines) {
+            line = line.trim();
+            if (line === '' || line === '{' || line === '}' || line.startsWith('//')) continue;
+            
+            // 处理for循环
+            const forMatch = line.match(/for\s*\(\s*([^;]+);\s*([^;]+);\s*([^)]+)\s*\)\s*\{?([^{}]*)\}?/);
+            if (forMatch) {
+                let init = forMatch[1].trim();
+                let condition = forMatch[2].trim();
+                let increment = forMatch[3].trim();
+                let loopBody = forMatch[4].trim();
+                
+                if (init.match(/^(int|long long)/)) {
+                    const initParts = init.split(/\s+/);
+                    if (initParts.length >= 2) this.variables.set(initParts[1], 0);
+                    const eqMatch = init.match(/(\w+)\s*=\s*(\d+)/);
+                    if (eqMatch) this.variables.set(eqMatch[1], parseInt(eqMatch[2]));
+                } else if (init.includes('=')) {
+                    const [varName, val] = init.split('=');
+                    this.variables.set(varName.trim(), parseInt(val));
+                }
+                
+                let loopCount = 0;
+                while (loopCount < 1000) {
+                    let condStr = condition;
+                    for (let [varName, varValue] of this.variables) {
+                        condStr = condStr.replace(new RegExp('\\b' + varName + '\\b', 'g'), varValue);
+                    }
+                    let condResult = false;
+                    try { condResult = Function('"use strict"; return (' + condStr + ')')(); } catch(e) { break; }
+                    if (!condResult) break;
+                    
+                    if (loopBody) this.executeLine(loopBody);
+                    if (increment.includes('++')) {
+                        const incVar = increment.replace('++', '').trim();
+                        if (this.variables.has(incVar)) this.variables.set(incVar, this.variables.get(incVar) + 1);
+                    }
+                    loopCount++;
+                }
+                continue;
+            }
+            
+            // 处理while循环
+            const whileMatch = line.match(/while\s*\(\s*([^)]+)\s*\)\s*\{?([^{}]*)\}?/);
+            if (whileMatch) {
+                let condition = whileMatch[1].trim();
+                let loopBody = whileMatch[2].trim();
+                let loopCount = 0;
+                while (loopCount < 1000) {
+                    let condStr = condition;
+                    for (let [varName, varValue] of this.variables) {
+                        condStr = condStr.replace(new RegExp('\\b' + varName + '\\b', 'g'), varValue);
+                    }
+                    let condResult = false;
+                    try { condResult = Function('"use strict"; return (' + condStr + ')')(); } catch(e) { break; }
+                    if (!condResult) break;
+                    if (loopBody) this.executeLine(loopBody);
+                    loopCount++;
+                }
+                continue;
+            }
+            
+            this.executeLine(line);
+        }
+        
+        return { success: true, errors: this.errors, output: this.output.trim() };
+    }
+    
+    executeLine(line) {
+        const statements = line.split(';').filter(s => s.trim().length > 0).map(s => s.trim());
+        for (let stmt of statements) {
+            if (stmt === '') continue;
+            try {
+                if (stmt.match(/^(int|long long|float|double)\s+/)) {
+                    const varMatch = stmt.match(/(int|long long|float|double)\s+(\w+)\s*(?:=\s*([^,;]+))?/);
+                    if (varMatch) {
+                        let val = varMatch[3] ? this.evaluateExpression(varMatch[3]) : 0;
+                        if (!isNaN(val)) val = parseFloat(val);
+                        this.variables.set(varMatch[2], val);
+                    }
+                } else if (stmt.startsWith('cin')) {
+                    const cinMatch = stmt.match(/cin\s*>>\s*(.+)/);
+                    if (cinMatch) {
+                        const vars = cinMatch[1].split(/>>\s*/);
+                        for (let v of vars) {
+                            if (this.inputIndex < this.inputValues.length) {
+                                let val = this.inputValues[this.inputIndex];
+                                if (!isNaN(val)) val = parseFloat(val);
+                                this.variables.set(v.trim(), val);
+                                this.inputIndex++;
+                            }
+                        }
+                    }
+                } else if (stmt.startsWith('cout')) {
+                    const coutMatch = stmt.match(/cout\s*<<\s*(.+)/);
+                    if (coutMatch) {
+                        const parts = coutMatch[1].split(/<<\s*/);
+                        for (let part of parts) {
+                            this.output += this.evaluateExpression(part);
+                        }
+                    }
+                } else if (stmt.includes('=')) {
+                    const [varName, expr] = stmt.split('=');
+                    const val = this.evaluateExpression(expr.trim());
+                    this.variables.set(varName.trim(), parseFloat(val) || val);
+                }
+            } catch(e) { this.errors.push(`错误: ${e.message}`); }
+        }
+    }
+}
+
+// ==================== 判题函数 ====================
+async function submitCodeJudge() {
+    const code = document.getElementById('codeEditor').value;
+    const prob = globalData.currentProblem;
+    if (!prob) return;
+    
+    const resultDiv = document.getElementById('judgeResultBox');
+    resultDiv.innerHTML = '<div style="text-align:center; padding:20px;"><div class="loading-spinner"></div> ⏳ 判题中...</div>';
+    
+    let totalScore = 0, maxScore = 0;
+    let testDetails = [];
+    
+    for (let i = 0; i < prob.testPoint.length; i++) {
+        const tp = prob.testPoint[i];
+        maxScore += tp.score;
+        const executor = new CppExecutor(code, tp.input);
+        const result = executor.execute();
+        
+        const isCorrect = result.success && result.output === tp.output;
+        if (isCorrect) totalScore += tp.score;
+        
+        testDetails.push({
+            index: i + 1, input: tp.input, expected: tp.output,
+            actual: result.output, passed: isCorrect, score: tp.score
+        });
+    }
+    
+    const percentage = (totalScore / maxScore) * 100;
+    
+    if (totalScore === maxScore) {
+        createConfetti();
+        resultDiv.innerHTML = '<div class="result-card"><div class="score-circle" style="background: conic-gradient(#48bb78 0deg, #48bb78 360deg)"><div class="score-inner"><div class="score-number">' + totalScore + '</div><div style="color:#48bb78; font-weight:bold;">满分!</div></div></div><h2 style="margin: 20px 0 10px;">🎉 恭喜！答案正确！ 🎉</h2><div style="font-size: 48px;">🏆</div></div>';
+        showToast('🎉 恭喜获得满分！');
+    } else {
+        resultDiv.innerHTML = '<div class="result-card" style="background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);"><div class="score-circle" style="background: conic-gradient(#fc8181 ' + (percentage * 3.6) + 'deg, #e2e8f0 0deg)"><div class="score-inner"><div class="score-number">' + totalScore + '</div><div style="color:#f56565;">/' + maxScore + '</div></div></div><h3 style="margin-top: 15px;">❌ 答案错误</h3><p style="margin-top: 10px;">未通过全部测试点，请检查代码逻辑</p></div>';
+    }
+    
+    globalData.submitRecords.unshift({
+        id: Date.now(), userName: globalData.userInfo?.name || '未知',
+        probName: prob.title, score: totalScore, full: maxScore,
+        code: code, testDetails: testDetails, time: Date.now()
+    });
+    saveData();
+    if (globalData.role === 'teacher') renderSubmitRecords();
+}
+
+function createConfetti() {
+    for (let i = 0; i < 150; i++) {
+        const conf = document.createElement('div');
+        conf.className = 'confetti';
+        conf.style.left = Math.random() * 100 + '%';
+        conf.style.backgroundColor = 'hsl(' + (Math.random() * 360) + ', 80%, 60%)';
+        conf.style.width = conf.style.height = Math.random() * 10 + 5 + 'px';
+        conf.style.animationDelay = Math.random() * 0.5 + 's';
+        document.body.appendChild(conf);
+        setTimeout(() => conf.remove(), 4000);
+    }
+}
+
+// ==================== 渲染函数 ====================
+function renderTeacherProblemList() {
+    const keyword = document.getElementById('teacherSearchInput')?.value.toLowerCase() || '';
+    const filtered = globalData.problemList.filter(p => p.title.toLowerCase().includes(keyword));
+    const container = document.getElementById('teacherProblemsPanel');
+    if (!container) return;
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="problem-item">暂无题目</div>';
+        return;
+    }
+    
+    let html = '';
+    for (let p of filtered) {
+        html += '<div class="problem-item"><div class="problem-title">📖 ' + escapeHtml(p.title) + '</div><button class="btn btn-primary" onclick="enterCodePage(' + p.id + ')">开始做题</button></div>';
+    }
+    container.innerHTML = html;
+}
+
+function renderStudentProblemList() {
+    const keyword = document.getElementById('studentSearchInput')?.value.toLowerCase() || '';
+    const filtered = globalData.problemList.filter(p => p.title.toLowerCase().includes(keyword));
+    const container = document.getElementById('studentProblemList');
+    if (!container) return;
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="problem-item">暂无题目</div>';
+        return;
+    }
+    
+    let html = '';
+    for (let p of filtered) {
+        html += '<div class="problem-item"><div class="problem-title">📖 ' + escapeHtml(p.title) + '</div><button class="btn btn-primary" onclick="enterCodePage(' + p.id + ')">开始做题</button></div>';
+    }
+    container.innerHTML = html;
+}
+
+function renderSubmitRecords() {
+    const tbody = document.querySelector('#teacherSubmitTable tbody');
+    if (!tbody) return;
+    
+    if (globalData.submitRecords.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">暂无提交记录</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    for (let i = 0; i < Math.min(globalData.submitRecords.length, 50); i++) {
+        const r = globalData.submitRecords[i];
+        html += '<tr>' +
+            '<td>' + escapeHtml(r.userName) + '</td>' +
+            '<td>' + escapeHtml(r.probName) + '</td>' +
+            '<td>' + r.score + '/' + r.full + '</td>' +
+            '<td>' + new Date(r.time).toLocaleString() + '</td>' +
+            '<td><button class="btn btn-primary" onclick="viewSubmitDetail(' + r.id + ')">查看详情</button></td>' +
+            '</tr>';
+    }
+    tbody.innerHTML = html;
+}
+
+function renderAdminStudentTable() {
+    const tbody = document.querySelector('#adminStudentTable tbody');
+    if (!tbody) return;
+    
+    if (globalData.studentList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">暂无学生</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    for (let i = 0; i < globalData.studentList.length; i++) {
+        const s = globalData.studentList[i];
+        html += '<tr>' +
+            '<td>' + escapeHtml(s.name) + '</td>' +
+            '<td>' + escapeHtml(s.acc) + '</td>' +
+            '<td>' + escapeHtml(s.pwd) + '</td>' +
+            '<td><div class="action-buttons"><button class="btn btn-info" onclick="openEditStudentModal(' + i + ')">✏️ 修改</button><button class="btn btn-danger" onclick="deleteStudent(' + i + ')">🗑️ 删除</button></div></td>' +
+            '</tr>';
+    }
+    tbody.innerHTML = html;
+}
+
+function renderAdminProblemTable() {
+    const tbody = document.querySelector('#adminProblemTable tbody');
+    if (!tbody) return;
+    
+    if (globalData.problemList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3">暂无题目</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    for (let i = 0; i < globalData.problemList.length; i++) {
+        const p = globalData.problemList[i];
+        const totalScore = p.testPoint.reduce((sum, tp) => sum + tp.score, 0);
+        html += '<tr>' +
+            '<td>' + escapeHtml(p.title) + '</td>' +
+            '<td>' + totalScore + '</td>' +
+            '<td><button class="btn btn-danger" onclick="deleteProblem(' + i + ')">删除</button></td>' +
+            '</tr>';
+    }
+    tbody.innerHTML = html;
+}
+
+// ==================== 页面切换 ====================
+function hideAllPages() {
+    const containers = document.querySelectorAll('.container');
+    for (let i = 0; i < containers.length; i++) {
+        containers[i].classList.add('hide');
+    }
+}
+
+function userLogin() {
+    const acc = document.getElementById('loginAcc').value.trim();
+    const pwd = document.getElementById('loginPwd').value.trim();
+    const tip = document.getElementById('loginTip');
+    
+    if (acc === 'admin' && pwd === '123456') {
+        globalData.role = 'teacher';
+        globalData.userInfo = { name: '教师' };
+        hideAllPages();
+        document.getElementById('teacherMainPage').classList.remove('hide');
+        renderTeacherProblemList();
+        renderSubmitRecords();
+        showToast('👨‍🏫 欢迎回来，教师！');
+        return;
+    }
+    
+    const student = globalData.studentList.find(s => s.acc === acc && s.pwd === pwd);
+    if (student) {
+        globalData.role = 'student';
+        globalData.userInfo = student;
+        hideAllPages();
+        document.getElementById('studentMainPage').classList.remove('hide');
+        renderStudentProblemList();
+        showToast('👋 欢迎，' + student.name + '同学！');
+        return;
+    }
+    
+    tip.innerText = '账号或密码错误！教师账号：admin/123456，学生账号：zhangsan/123456 或 lisi/123456';
+}
+
+function userLogout() {
+    globalData.role = null;
+    globalData.userInfo = null;
+    hideAllPages();
+    document.getElementById('loginPage').classList.remove('hide');
+    document.getElementById('loginAcc').value = '';
+    document.getElementById('loginPwd').value = '';
+    document.getElementById('loginTip').innerText = '';
+    showToast('已安全退出登录');
+}
+
+function enterCodePage(pid) {
+    const problem = globalData.problemList.find(p => p.id === pid);
+    if (!problem) return;
+    globalData.currentProblem = problem;
+    hideAllPages();
+    document.getElementById('codeEditPage').classList.remove('hide');
+    document.getElementById('nowProblemTitle').innerText = problem.title;
+    document.getElementById('nowProblemDesc').innerText = problem.desc;
+    
+    let defaultCode = '#include <iostream>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}';
+    if (problem.title === "两数之和") {
+        defaultCode = '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    cin >> a >> b;\n    cout << a + b;\n    return 0;\n}';
+    } else if (problem.title === "最长连续9") {
+        defaultCode = '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n, x, cnt = 0, maxCnt = 0;\n    cin >> n;\n    for(int i = 0; i < n; i++) {\n        cin >> x;\n        if(x == 9) { cnt++; if(cnt > maxCnt) maxCnt = cnt; }\n        else { cnt = 0; }\n    }\n    cout << maxCnt;\n    return 0;\n}';
+    } else if (problem.title === "三数相加") {
+        defaultCode = '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a=1, b=2, c=3;\n    cout << a + b + c;\n    return 0;\n}';
+    }
+    
+    document.getElementById('codeEditor').value = defaultCode;
+    document.getElementById('judgeResultBox').innerHTML = '';
+}
+
+function backProblemList() {
+    hideAllPages();
+    if (globalData.role === 'teacher') {
+        document.getElementById('teacherMainPage').classList.remove('hide');
+        renderTeacherProblemList();
+    } else {
+        document.getElementById('studentMainPage').classList.remove('hide');
+        renderStudentProblemList();
+    }
+}
+
+function openAdminPage() {
+    hideAllPages();
+    document.getElementById('teacherAdminPage').classList.remove('hide');
+    switchAdminTab('student');
+}
+
+function backToTeacherMain() {
+    hideAllPages();
+    document.getElementById('teacherMainPage').classList.remove('hide');
+    renderTeacherProblemList();
+    renderSubmitRecords();
+}
+
+function switchTeacherTab(tab) {
+    const problems = document.getElementById('teacherProblemsPanel');
+    const records = document.getElementById('teacherRecordsPanel');
+    if (tab === 'problems') {
+        problems.classList.remove('hide');
+        records.classList.add('hide');
+        renderTeacherProblemList();
+    } else {
+        problems.classList.add('hide');
+        records.classList.remove('hide');
+        renderSubmitRecords();
+    }
+}
+
+function switchAdminTab(tab) {
+    const student = document.getElementById('adminStudentPanel');
+    const problem = document.getElementById('adminProblemPanel');
+    if (tab === 'student') {
+        student.classList.remove('hide');
+        problem.classList.add('hide');
+        renderAdminStudentTable();
+    } else {
+        student.classList.add('hide');
+        problem.classList.remove('hide');
+        renderAdminProblemTable();
+    }
+}
+
+function viewSubmitDetail(id) {
+    const record = globalData.submitRecords.find(r => r.id === id);
+    if (!record) return;
+    hideAllPages();
+    document.getElementById('viewSubmitDetailPage').classList.remove('hide');
+    document.getElementById('submitDetailInfo').innerHTML = '<p><strong>学生:</strong> ' + escapeHtml(record.userName) + '</p><p><strong>题目:</strong> ' + escapeHtml(record.probName) + '</p><p><strong>得分:</strong> ' + record.score + '/' + record.full + '</p><p><strong>时间:</strong> ' + new Date(record.time).toLocaleString() + '</p>';
+    document.getElementById('detailCodeContent').value = record.code;
+    
+    let detailsHtml = '<div style="margin-top: 10px;"><strong>测试点详情：</strong></div>';
+    for (let td of record.testDetails) {
+        detailsHtml += '<div style="margin: 10px 0; padding: 10px; background: #f7fafc; border-radius: 8px;"><div><strong>测试点 ' + td.index + ':</strong> 输入: "' + td.input + '" | 预期: "' + td.expected + '" | 实际: "' + td.actual + '"</div><div style="color: ' + (td.passed ? '#48bb78' : '#f56565') + '">' + (td.passed ? '✓ 通过 (+' + td.score + '分)' : '✗ 未通过') + '</div></div>';
+    }
+    document.getElementById('detailJudgeContent').innerHTML = detailsHtml;
+}
+
+function backToRecords() {
+    hideAllPages();
+    document.getElementById('teacherMainPage').classList.remove('hide');
+    switchTeacherTab('records');
+    renderSubmitRecords();
+}
+
+// ==================== 学生管理 ====================
+let currentEditIndex = -1;
+
+function openAddStudentModal() { 
+    document.getElementById('addStudentModal').classList.remove('hide');
+    document.getElementById('addStuName').value = '';
+    document.getElementById('addStuAcc').value = '';
+    document.getElementById('addStuPwd').value = '123456';
+}
+function closeAddStudentModal() { document.getElementById('addStudentModal').classList.add('hide'); }
+
+function openEditStudentModal(index) {
+    currentEditIndex = index;
+    const student = globalData.studentList[index];
+    document.getElementById('editStuName').value = student.name;
+    document.getElementById('editStuAcc').value = student.acc;
+    document.getElementById('editStuPwd').value = student.pwd;
+    document.getElementById('editStudentModal').classList.remove('hide');
+}
+
+function closeEditStudentModal() { document.getElementById('editStudentModal').classList.add('hide'); }
+
+function saveNewStudent() {
+    const name = document.getElementById('addStuName').value.trim();
+    const acc = document.getElementById('addStuAcc').value.trim();
+    const pwd = document.getElementById('addStuPwd').value.trim();
+    if (!name || !acc) { alert('请填写完整'); return; }
+    if (globalData.studentList.some(s => s.acc === acc)) { alert('账号已存在'); return; }
+    globalData.studentList.push({ name, acc, pwd });
+    saveData();
+    closeAddStudentModal();
+    renderAdminStudentTable();
+    showToast('✅ 学生 ' + name + ' 添加成功');
+}
+
+function updateStudent() {
+    const name = document.getElementById('editStuName').value.trim();
+    const acc = document.getElementById('editStuAcc').value.trim();
+    const pwd = document.getElementById('editStuPwd').value.trim();
+    if (!name || !acc) { alert('请填写完整'); return; }
+    
+    if (globalData.studentList.some((s, i) => s.acc === acc && i !== currentEditIndex)) {
+        alert('账号已存在');
+        return;
+    }
+    
+    globalData.studentList[currentEditIndex] = { name, acc, pwd };
+    saveData();
+    closeEditStudentModal();
+    renderAdminStudentTable();
+    showToast('✅ 学生信息已更新');
+}
+
+function deleteStudent(index) {
+    if (confirm('确定删除吗？')) {
+        const name = globalData.studentList[index].name;
+        globalData.studentList.splice(index, 1);
+        saveData();
+        renderAdminStudentTable();
+        showToast('🗑️ 已删除学生 ' + name);
+    }
+}
+
+// ==================== 题目管理 ====================
+function openAddProblemModal() {
+    document.getElementById('addProblemModal').classList.remove('hide');
+    document.getElementById('testPointWrap').innerHTML = '';
+    document.getElementById('addProbTitle').value = '';
+    document.getElementById('addProbDesc').value = '';
+    addTestPoint();
+}
+
+function closeAddProblemModal() { document.getElementById('addProblemModal').classList.add('hide'); }
+
+function addTestPoint() {
+    const wrap = document.getElementById('testPointWrap');
+    const count = wrap.querySelectorAll('.test-point-card').length + 1;
+    const div = document.createElement('div');
+    div.className = 'test-point-card';
+    div.innerHTML = '<div style="font-weight: bold; margin-bottom: 10px;">测试点 ' + count + '</div>' +
+        '<textarea class="tpInput" placeholder="输入数据（支持多行）" rows="2" style="margin-bottom: 10px;"></textarea>' +
+        '<input type="text" class="tpOutput" placeholder="预期输出" style="margin-bottom: 10px;">' +
+        '<input type="number" class="tpScore" placeholder="分值" value="10" style="width: 100px;">' +
+        '<button class="btn btn-danger" style="margin-top: 5px;" onclick="this.parentElement.remove()">删除测试点</button>';
+    wrap.appendChild(div);
+}
+
+function saveNewProblem() {
+    const title = document.getElementById('addProbTitle').value.trim();
+    const desc = document.getElementById('addProbDesc').value.trim();
+    if (!title) { alert('请输入题目名称'); return; }
+    
+    const testPoints = [];
+    const cards = document.querySelectorAll('#testPointWrap .test-point-card');
+    for (let card of cards) {
+        const input = card.querySelector('.tpInput')?.value || "";
+        const output = card.querySelector('.tpOutput')?.value.trim();
+        const score = parseInt(card.querySelector('.tpScore')?.value) || 0;
+        if (output) testPoints.push({ input, output, score });
+    }
+    
+    if (testPoints.length === 0) { alert('请至少添加一个有效的测试点'); return; }
+    
+    globalData.problemList.push({ id: Date.now(), title, desc: desc || '无描述', testPoint: testPoints });
+    saveData();
+    closeAddProblemModal();
+    renderAdminProblemTable();
+    if (globalData.role === 'teacher') renderTeacherProblemList();
+    showToast('✅ 题目 "' + title + '" 添加成功');
+}
+
+function deleteProblem(index) {
+    if (confirm('确定删除题目吗？')) {
+        const title = globalData.problemList[index].title;
+        globalData.problemList.splice(index, 1);
+        saveData();
+        renderAdminProblemTable();
+        if (globalData.role === 'teacher') renderTeacherProblemList();
+        showToast('🗑️ 已删除题目 "' + title + '"');
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// 启动
+createParticles();
+initData();
+hideAllPages();
+document.getElementById('loginPage').classList.remove('hide');
+</script>
+</body>
+</html>
